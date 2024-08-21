@@ -13,6 +13,7 @@ import {
 } from "@solana/web3.js";
 
 import nacl from "tweetnacl";
+import IsLoading from "./isLoading";
 const DELNET_ENDPOINT = "https://api.devnet.solana.com";
 export function SolanaWallet() {
   const location = useLocation();
@@ -23,26 +24,44 @@ export function SolanaWallet() {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [solanaWallets, setSolanaWallets] = useState([]);
-
+  const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     console.log("useEffect called, resetting solanaWallets");
-    setSolanaWallets([]); // Reset the solanaWallets state at each refresh
+
     const conn = new Connection(DELNET_ENDPOINT);
     setConnection(conn);
   }, []);
   const copyToClipboard = (privateKey) => {
     navigator.clipboard.writeText(privateKey).then(() => {
-      alert("Private Key copied to clipboard");
+      alert(" Key copied to clipboard");
     });
   };
   const getBalance = async (publicKey) => {
+    try {
+      if (connection) {
+        const balance = await connection.getBalance(publicKey);
+        console.log(balance);
+        setIsLoading(false);
+        setBalances((prev) => ({
+          ...prev,
+          [publicKey.toBase58()]: balance / LAMPORTS_PER_SOL,
+        }));
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.log(error);
+    }
+  };
+  const requestAirdrop = async (publicKey) => {
+    setIsLoading(true);
+
     if (connection) {
-      const balance = await connection.getBalance(publicKey);
-      console.log(balance);
-      setBalances((prev) => ({
-        ...prev,
-        [publicKey.toBase58()]: balance / LAMPORTS_PER_SOL,
-      }));
+      const signature = await connection.requestAirdrop(
+        publicKey,
+        LAMPORTS_PER_SOL
+      );
+      await connection.confirmTransaction(signature);
+      await getBalance(publicKey);
     }
   };
   return (
@@ -79,7 +98,15 @@ export function SolanaWallet() {
                 Wallet {index + 1 + ":"}
               </h2>
               <div className="flex flex-col">
-                <div>{"Public Key:" + wallet.publicKey.toBase58()}</div>
+                <div>
+                  {"Public Key:" + wallet.publicKey.toBase58().slice(0, 10)}
+                  <button
+                    onClick={() => copyToClipboard(wallet.publicKey.toBase58())}
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
+                  >
+                    Copy
+                  </button>
+                </div>
                 <div className="flex justify-between">
                   <span>
                     {"Private Key:" +
@@ -100,13 +127,20 @@ export function SolanaWallet() {
                   </button>
                 </div>
                 <div>
-                  Balance: {balances[wallet.publicKey.toBase58()] || 0} SOL
+                  Balance: {balances[wallet.publicKey.toBase58()] || "0"} SOL
                 </div>
                 <button
                   onClick={() => getBalance(wallet.publicKey)}
                   className="btn btn-secondary btn-sm w-full"
                 >
                   Check Balance
+                </button>
+                {isLoading && <IsLoading />}
+                <button
+                  className="btn btn-secondary btn-sm mt-4"
+                  onClick={() => requestAirdrop(wallet.publicKey)}
+                >
+                  Request Airdrop
                 </button>
               </div>
             </div>
