@@ -68,38 +68,51 @@ export function SolanaWallet() {
       >
         Add SOL wallet
       </button>
-      {solanaWallets.map((wallet, index) => (
-        <div className="flex flex-col gap-2" key={index}>
-          <h2 className="text-2xl font-bold text-center">
-            Wallet {index + 1 + ":"}
-          </h2>
-          <div className="flex flex-col">
-            <div>{"Public Key:" + wallet.publicKey.toBase58()}</div>
-            <div className="flex justify-between">
-              <span>
-                {"Private Key:" +
-                  Buffer.from(wallet.secretKey).toString("hex").slice(0, 10) +
-                  "..."}
-              </span>
-              <button
-                onClick={() =>
-                  copyToClipboard(Buffer.from(wallet.secretKey).toString("hex"))
-                }
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
-              >
-                Copy
-              </button>
-            </div>
-            <div>Balance: {balances[wallet.publicKey.toBase58()] || 0} SOL</div>
-            <button
-              onClick={() => getBalance(wallet.publicKey)}
-              className="btn btn-secondary"
+      <div className="overflow-x-auto">
+        <div className="flex gap-4 pb-4 flex-col">
+          {solanaWallets.map((wallet, index) => (
+            <div
+              className="flex-shrink-0 w-64 bg-base-200 p-4 rounded-lg"
+              key={index}
             >
-              Check Balance
-            </button>
-          </div>
+              <h2 className="text-2xl font-bold text-center">
+                Wallet {index + 1 + ":"}
+              </h2>
+              <div className="flex flex-col">
+                <div>{"Public Key:" + wallet.publicKey.toBase58()}</div>
+                <div className="flex justify-between">
+                  <span>
+                    {"Private Key:" +
+                      Buffer.from(wallet.secretKey)
+                        .toString("hex")
+                        .slice(0, 10) +
+                      "..."}
+                  </span>
+                  <button
+                    onClick={() =>
+                      copyToClipboard(
+                        Buffer.from(wallet.secretKey).toString("hex")
+                      )
+                    }
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <div>
+                  Balance: {balances[wallet.publicKey.toBase58()] || 0} SOL
+                </div>
+                <button
+                  onClick={() => getBalance(wallet.publicKey)}
+                  className="btn btn-secondary btn-sm w-full"
+                >
+                  Check Balance
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
