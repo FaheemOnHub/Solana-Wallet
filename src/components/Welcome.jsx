@@ -42,7 +42,7 @@ function Welcome() {
               Copy to clipboard
             </button>
             <button
-              onClick={() => navigate("/wallet")}
+              onClick={() => navigate("/wallet", { state: { mnemonic } })}
               className="btn btn-secondary mt-4 "
             >
               Go to wallet

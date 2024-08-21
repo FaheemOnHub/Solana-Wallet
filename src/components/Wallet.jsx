@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { mnemonicToSeed } from "bip39";
 import { derivePath } from "ed25519-hd-key";
+import { useLocation } from "react-router-dom";
 import {
   Keypair,
   Connection,
@@ -13,7 +14,9 @@ import {
 
 import nacl from "tweetnacl";
 const DELNET_ENDPOINT = "https://api.devnet.solana.com";
-export function SolanaWallet({ mnemonic }) {
+export function SolanaWallet() {
+  const location = useLocation();
+  const mnemonic = location.state?.mnemonic;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [connection, setConnection] = useState(null);
   const [balances, setBalances] = useState({});
@@ -22,7 +25,8 @@ export function SolanaWallet({ mnemonic }) {
   const [solanaWallets, setSolanaWallets] = useState([]);
 
   useEffect(() => {
-    setSolanaWallets([]);
+    console.log("useEffect called, resetting solanaWallets");
+    setSolanaWallets([]); // Reset the solanaWallets state at each refresh
     const conn = new Connection(DELNET_ENDPOINT);
     setConnection(conn);
   }, []);
@@ -42,10 +46,15 @@ export function SolanaWallet({ mnemonic }) {
     }
   };
   return (
-    <div>
+    <div className="flex flex-col gap-2 flex-wrap max-h-[80vh]">
+      {console.log("Rendering, solanaWallets:", solanaWallets)}
       <button
         className="btn btn-primary"
         onClick={async function () {
+          if (solanaWallets.length >= 10) {
+            alert("You can only have up to 10 wallets");
+            return;
+          }
           const seed = await mnemonicToSeed(mnemonic);
           const path = `m/44'/501'/${currentIndex}'/0'`;
           const derivedSeed = derivePath(path, seed.toString("hex")).key;
