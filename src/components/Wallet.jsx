@@ -24,7 +24,8 @@ export function SolanaWallet() {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [solanaWallets, setSolanaWallets] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingStates, setLoadingStates] = useState({});
+
   useEffect(() => {
     console.log("useEffect called, resetting solanaWallets");
 
@@ -39,23 +40,27 @@ export function SolanaWallet() {
   const getBalance = async (publicKey) => {
     try {
       if (connection) {
+        setLoadingStates((prev) => ({ ...prev, [publicKey.toBase58()]: true }));
         const balance = await connection.getBalance(publicKey);
         console.log(balance);
-        setIsLoading(false);
+
         setBalances((prev) => ({
           ...prev,
           [publicKey.toBase58()]: balance / LAMPORTS_PER_SOL,
         }));
+        setLoadingStates((prev) => ({
+          ...prev,
+          [publicKey.toBase58()]: false,
+        }));
       }
     } catch (error) {
-      setIsLoading(false);
+      setLoadingStates((prev) => ({ ...prev, [publicKey.toBase58()]: false }));
       console.log(error);
     }
   };
   const requestAirdrop = async (publicKey) => {
-    setIsLoading(true);
-
     if (connection) {
+      setLoadingStates((prev) => ({ ...prev, [publicKey.toBase58()]: true }));
       const signature = await connection.requestAirdrop(
         publicKey,
         LAMPORTS_PER_SOL
@@ -64,9 +69,31 @@ export function SolanaWallet() {
       await getBalance(publicKey);
     }
   };
+  const sendTransaction = async (senderWallet, recipientAddress, amount) => {
+    if (!connection || !recipientAddress) {
+      alert("Connection or recipient address is missing");
+      return;
+    }
+    try {
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: senderWallet.publicKey,
+          toPubkey: recipientAddress,
+          lamports: amount * LAMPORTS_PER_SOL,
+        })
+      );
+      const signature = await sendAndConfirmTransaction(
+        connection,
+        transaction,
+        [senderWallet]
+      );
+      console.log("Transaction sent:", signature);
+      alert("Transaction successful");
+      await getBalance(senderWallet.publicKey);
+    } catch (error) {}
+  };
   return (
-    <div className="flex flex-col gap-2 flex-wrap max-h-[80vh]">
-      {console.log("Rendering, solanaWallets:", solanaWallets)}
+    <div className="flex flex-col gap-2 flex-wrap max-h-[100vh]">
       <button
         className="btn btn-primary"
         onClick={async function () {
@@ -135,12 +162,44 @@ export function SolanaWallet() {
                 >
                   Check Balance
                 </button>
-                {isLoading && <IsLoading />}
+                {loadingStates[wallet.publicKey.toBase58()] && <IsLoading />}
                 <button
                   className="btn btn-secondary btn-sm mt-4"
                   onClick={() => requestAirdrop(wallet.publicKey)}
                 >
-                  Request Airdrop
+                  Request Airdrop (1 SOL)
+                </button>
+              </div>
+              <div>
+                <p className="text-sm mx-auto p-2">
+                  {" "}
+                  Transfer SOL from this wallet
+                </p>
+                <input
+                  type="text"
+                  placeholder="Recipient address"
+                  value={recipientAddress}
+                  onChange={(e) => setRecipientAddress(e.target.value)}
+                  className="input input-bordered w-full"
+                />
+                <input
+                  type="number"
+                  placeholder="Amount in SOL"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="input input-bordered w-full mt-2"
+                />
+                <button
+                  className="btn btn-primary mt-2 w-full"
+                  onClick={() =>
+                    sendTransaction(
+                      wallet,
+                      recipientAddress,
+                      parseFloat(amount)
+                    )
+                  }
+                >
+                  Send SOL
                 </button>
               </div>
             </div>
